@@ -1,0 +1,271 @@
+{
+  "name": "Weather Assistant & Scheduler Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 5
+            }
+          ]
+        }
+      },
+      "id": "1b58a37e-eb36-4747-88f8-d30a345d8a1e",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Run the daily weather routine for {{ $now.toFormat(\"cccc, d LLLL yyyy\") }}. Get the target locations from Google Sheets, check the current weather for each, create any useful calendar reminders, and email a summary.",
+        "options": {
+          "systemMessage": "### Role\nYou are an intelligent, proactive Weather Assistant and Personal Scheduler Agent designed to automate weather tracking, calendar logging, spreadsheet updates, and email notifications based on current weather conditions.\n- Once you have successfully fetched the weather data and performed any requested actions, you must immediately output your final text response to the user. Do not call any tools a second time.\n\n### Task\n1. Fetch and analyze current weather data for specified locations using the OpenWeatherMap tool.\n2. Check or retrieve user data/locations from Google Sheets when necessary.\n3. Automatically schedule weather-dependent events or reminders in Google Calendar.\n4. Send notifications or summaries via Gmail when specific weather triggers or summaries occur.\n5. Maintain conversational context and memory across interactions to deliver personalized updates.\n\n### Input\n- Location names or coordinates provided via user prompts or pulled from connected Google Sheets.\n- Current meteorological data returned by the OpenWeatherMap tool (temperature, humidity, wind, weather conditions).\n- Scheduled execution triggers or user chat messages.\n\n### Tools\n- **Google Gemini Chat Model:** Powers core reasoning, natural language understanding, and decision-making.\n- **OpenWeatherMap:** Fetches real-time weather data, forecasts, and conditions for any given location.\n- **Google Sheets (\"Get row(s) in sheet\"):** Retrieves data, such as target cities, subscriber emails, or user preferences.\n- **Google Calendar (\"Create an event in Google Calendar\"):** Schedules events, reminders, or weather-alert blocks onto the calendar.\n- **Gmail (\"Send and wait\"):** Sends automated emails, alerts, or summaries to users, pausing for human review if configured.\n- **Simple Memory:** Retains short-term chat context and history between turns.\n\n### Constraints\n- When triggered automatically by a schedule, always check the weather for a default city (e.g., \"London\" or \"New Delhi\").\n- Never call the same tool repeatedly with the exact same parameters if it has already been executed.\n- Once you successfully fetch the weather data and execute any required tools (Calendar, Sheets, or Gmail), immediately write out your final text response to the user. Do not call the same tool again or loop additional steps.\n\n### Output\n- A well-formatted, friendly natural language response summarizing the weather conditions, alongside confirmation of any automated tasks executed (e.g., calendar events created, sheet rows read, or emails sent via Gmail).",
+          "maxIterations": 20
+        }
+      },
+      "id": "bbbd7cb7-4acc-4627-be16-1030b2af9e07",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "daily-weather-assistant"
+      },
+      "id": "1c1703ff-ef1d-458b-a32d-2309880ab5ae",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        16,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash",
+        "options": {}
+      },
+      "id": "1e738961-45bf-4c12-9645-01e52b34404c",
+      "name": "Open AI",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        208
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "cityName": "Hyderabad, IN",
+        "language": "en"
+      },
+      "id": "1298638e-c90b-485d-a5bf-7455e139134f",
+      "name": "GetWeather",
+      "type": "n8n-nodes-base.openWeatherMapTool",
+      "typeVersion": 1,
+      "position": [
+        336,
+        208
+      ],
+      "credentials": {
+        "openWeatherMapApi": {
+          "id": "5Tm6Mb9esQUWcjyK",
+          "name": "OpenWeatherMap account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "rayaktushti@gmail.com",
+        "subject": "={{ $fromAI('Subject', 'Email subject line', 'string') }}",
+        "emailType": "text",
+        "message": "={{ $fromAI('Message', 'Full email body', 'string') }}",
+        "options": {}
+      },
+      "id": "66e55e90-bd53-4e9f-a6b3-6857e65eb380",
+      "name": "SendMessage",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        208
+      ],
+      "webhookId": "74dae768-c689-4469-8797-fc762371d12c",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "3CMGbUlisheceXH2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1_nmulwf35U6V9HfjGfBOZSc_vuoaZZZj0-uvyL66SbM/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_nmulwf35U6V9HfjGfBOZSc_vuoaZZZj0-uvyL66SbM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "id": "8b102307-1d66-45c0-b39a-80ebec380f0b",
+      "name": "GetTrailList",
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        464,
+        208
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "6IkjBajCVSVb0GqP",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "rayaktushti@gmail.com",
+          "mode": "list",
+          "cachedResultName": "rayaktushti@gmail.com"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        176,
+        208
+      ],
+      "id": "8b779872-7767-4342-81e3-5261ac26ad82",
+      "name": "CheckCalender",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "PCGfWXPbZ89xhSOY",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open AI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetWeather": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SendMessage": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetTrailList": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckCalender": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "1740020c-11ff-4ff2-8ca4-a6a772f8d53b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c7a5c21561314d8fa2355b1232aa7a7212f155fb6e59cd0943027432cd321cfc"
+  },
+  "nodeGroups": [],
+  "id": "PetTrAnPdmKnCIc2",
+  "tags": []
+}
